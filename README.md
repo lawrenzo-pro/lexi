@@ -1,0 +1,2 @@
+# lexi
+A simple project
