@@ -1,18 +1,19 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
+#![test_runner(lexi::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 use core::panic::PanicInfo;
 use lexi::println;
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    println!("Hello World{}", "!");
-
+    lexi::init(); // new
+    println!("Welcome {}", "!");
     #[cfg(test)]
     test_main();
-    loop {}
+    println!("It did not crash{}","!");
+    lexi::hlt_loop();  
 }
 
 /// This function is called on panic.
@@ -20,7 +21,7 @@ pub extern "C" fn _start() -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    lexi::hlt_loop();  
 }
 
 #[cfg(test)]
