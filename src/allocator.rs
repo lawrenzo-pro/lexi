@@ -1,9 +1,25 @@
+pub mod bump;
+pub mod linked_list;
+pub mod fixed_size_block;
 use alloc::alloc::{GlobalAlloc, Layout};
+use bump::BumpAllocator;
 use core::ptr::null_mut;
 use linked_list_allocator::LockedHeap;
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
+/*
+use linked_list::LinkedListAllocator;
 
+#[global_allocator]
+static ALLOCATOR: Locked<LinkedListAllocator> =
+    Locked::new(LinkedListAllocator::new());
+*/
+
+use fixed_size_block::FixedSizeBlockAllocator;
+
+#[global_allocator]
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(
+    FixedSizeBlockAllocator::new());
 pub struct Dummy;
 unsafe impl GlobalAlloc for Dummy {
     unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
@@ -16,9 +32,11 @@ unsafe impl GlobalAlloc for Dummy {
 }
 //End of dummy
 //global_allocator
+/*
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());*/
 //End
+
 use x86_64::{
     structures::paging::{
         mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,
@@ -49,4 +67,27 @@ pub fn init_heap(
         ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
     }
     Ok(())
+}
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<A> {
+        self.inner.lock()
+    }
+}
+fn align_up(addr: usize, align: usize) -> usize {
+    let remainder = addr % align;
+    if remainder == 0 {
+        addr // addr already aligned
+    } else {
+        addr - remainder + align
+    }
 }
