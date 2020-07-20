@@ -1,5 +1,5 @@
-use volatile::Volatile;
 use lazy_static::lazy_static;
+use volatile::Volatile;
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -78,7 +78,6 @@ impl Writer {
                 // not part of printable ASCII range
                 _ => self.write_byte(0xfe),
             }
-
         }
     }
 
@@ -132,11 +131,11 @@ macro_rules! println {
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-
     use core::fmt::Write;
-    use x86_64::instructions::interrupts;   // new
+    use x86_64::instructions::interrupts; // new
 
-    interrupts::without_interrupts(|| {     // new
+    interrupts::without_interrupts(|| {
+        // new
         WRITER.lock().write_fmt(args).unwrap();
     });
 }

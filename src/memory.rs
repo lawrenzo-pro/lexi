@@ -1,11 +1,8 @@
-use x86_64::{
-    structures::paging::PageTable,
-    VirtAddr,
-};
 use x86_64::structures::paging::OffsetPageTable;
+use x86_64::{structures::paging::PageTable, VirtAddr};
 use x86_64::{
+    structures::paging::{FrameAllocator, Mapper, Page, PhysFrame, Size4KiB},
     PhysAddr,
-    structures::paging::{Page, PhysFrame, Mapper, Size4KiB, FrameAllocator}
 };
 
 /// Creates an example mapping for the given page to frame `0xb8000`.
@@ -26,9 +23,7 @@ pub fn create_example_mapping(
     map_to_result.expect("map_to failed").flush();
 }
 
-unsafe fn active_level_4_table(physical_memory_offset: VirtAddr)
-    -> &'static mut PageTable
-{
+unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut PageTable {
     use x86_64::registers::control::Cr3;
 
     let (level_4_table_frame, _) = Cr3::read();
@@ -39,22 +34,21 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr)
 
     &mut *page_table_ptr // unsafe
 }
-pub unsafe fn translate_addr(addr: VirtAddr, physical_memory_offset: VirtAddr)
-    -> Option<PhysAddr>
-{
+pub unsafe fn translate_addr(addr: VirtAddr, physical_memory_offset: VirtAddr) -> Option<PhysAddr> {
     translate_addr_inner(addr, physical_memory_offset)
 }
-fn translate_addr_inner(addr: VirtAddr, physical_memory_offset: VirtAddr)
-    -> Option<PhysAddr>
-{
-    use x86_64::structures::paging::page_table::FrameError;
+fn translate_addr_inner(addr: VirtAddr, physical_memory_offset: VirtAddr) -> Option<PhysAddr> {
     use x86_64::registers::control::Cr3;
+    use x86_64::structures::paging::page_table::FrameError;
 
     // read the active level 4 frame from the CR3 register
     let (level_4_table_frame, _) = Cr3::read();
 
     let table_indexes = [
-        addr.p4_index(), addr.p3_index(), addr.p2_index(), addr.p1_index()
+        addr.p4_index(),
+        addr.p3_index(),
+        addr.p2_index(),
+        addr.p1_index(),
     ];
     let mut frame = level_4_table_frame;
 
@@ -63,7 +57,7 @@ fn translate_addr_inner(addr: VirtAddr, physical_memory_offset: VirtAddr)
         // convert the frame into a page table reference
         let virt = physical_memory_offset + frame.start_address().as_u64();
         let table_ptr: *const PageTable = virt.as_ptr();
-        let table = unsafe {&*table_ptr};
+        let table = unsafe { &*table_ptr };
 
         // read the page table entry and update `frame`
         let entry = &table[index];
@@ -106,11 +100,9 @@ impl BootInfoFrameAllocator {
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
         // get usable regions from memory map
         let regions = self.memory_map.iter();
-        let usable_regions = regions
-            .filter(|r| r.region_type == MemoryRegionType::Usable);
+        let usable_regions = regions.filter(|r| r.region_type == MemoryRegionType::Usable);
         // map each region to its address range
-        let addr_ranges = usable_regions
-            .map(|r| r.range.start_addr()..r.range.end_addr());
+        let addr_ranges = usable_regions.map(|r| r.range.start_addr()..r.range.end_addr());
         // transform to an iterator of frame start addresses
         let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
         // create `PhysFrame` types from the start addresses
