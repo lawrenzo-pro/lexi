@@ -7,10 +7,13 @@
 #![feature(alloc_error_handler)]
 #![feature(const_fn)]
 #![feature(const_in_array_repeat_expressions)]
+#![feature(wake_trait)]
 extern crate alloc;
+
 pub mod allocator;
 pub mod gdt;
 pub mod memory;
+pub mod task;
 use core::panic::PanicInfo;
 pub mod interrupts;
 pub mod serial;
