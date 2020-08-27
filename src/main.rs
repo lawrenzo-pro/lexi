@@ -10,6 +10,7 @@ use lexi::task::{Task, simple_executor::SimpleExecutor};
 use lexi::task::keyboard; 
 use lexi::task::executor::Executor;
 extern crate alloc;
+extern crate rlibc;
 //use alloc::boxed::Box;
 use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
 entry_point!(kernel_main);
